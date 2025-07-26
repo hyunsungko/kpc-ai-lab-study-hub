@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "kpc-ai-lab-study-hub",
+  "name": "kpc-ai-lab-study-hub-v2",
   "builds": [
     {
       "src": "package.json",
@@ -21,9 +21,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "REACT_APP_SUPABASE_URL": "@react_app_supabase_url",
-    "REACT_APP_SUPABASE_ANON_KEY": "@react_app_supabase_anon_key"
-  }
+  ]
 }
