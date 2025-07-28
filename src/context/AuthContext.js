@@ -15,25 +15,17 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [initialCheckComplete, setInitialCheckComplete] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    let authChecked = false;
     
-    // 초기 사용자 상태 확인
-    const initAuth = async () => {
-      await checkUser();
-      if (mounted) {
-        setInitialCheckComplete(true);
-      }
-    };
-    
-    initAuth();
+    console.log('🚀 AuthProvider mounting...');
 
-    // 인증 상태 변화 감지
+    // 인증 상태 변화 감지 (먼저 설정)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
+        console.log('🔄 Auth state change:', event, session?.user?.email);
         
         if (!mounted) return;
         
@@ -45,7 +37,6 @@ export const AuthProvider = ({ children }) => {
               await fetchProfile(session.user.id);
             } catch (profileError) {
               console.error('❌ Profile fetch failed in auth change:', profileError);
-              // 프로필 로딩 실패해도 기본 프로필로 계속 진행
               setProfile({
                 id: session.user.id,
                 email: session.user.email,
@@ -59,61 +50,67 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (error) {
           console.error('⚠️ Auth state change error:', error);
-          // 오류 시에도 상태 정리
           setUser(null);
           setProfile(null);
         } finally {
-          if (mounted && initialCheckComplete) {
+          if (mounted) {
+            console.log('✅ Auth state change complete - loading false');
             setLoading(false);
           }
         }
       }
     );
+    
+    // 초기 인증 체크 (단순화)
+    const initAuth = async () => {
+      if (authChecked || !mounted) return;
+      authChecked = true;
+      
+      console.log('🔍 Initial auth check starting...');
+      await checkUser();
+    };
+    
+    // 짧은 딘레이 후 초기 체크 실행
+    const initTimer = setTimeout(initAuth, 100);
 
     return () => {
       mounted = false;
+      authChecked = true;
+      clearTimeout(initTimer);
       subscription.unsubscribe();
+      console.log('📏 AuthProvider unmounting...');
     };
-  }, [initialCheckComplete]);
+  }, []); // 의존성 제거
 
   const checkUser = async () => {
     try {
-      console.log('🔍 Checking user session...');
+      console.log('🔍 Initial session check...');
       
-      // 1. 먼저 Supabase 연결 테스트
-      try {
-        await supabase.from('profiles').select('count').limit(1).single();
-        console.log('✅ Supabase connection OK');
-      } catch (connError) {
-        console.error('❌ Supabase connection failed:', connError);
-        // 연결 실패해도 계속 진행 (로그인 화면으로)
-      }
-      
-      // 2. 세션 확인 (타임아웃 3초)
+      // 간단한 세션 확인 (타임아웃 5초)
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session check timeout')), 3000)
+        setTimeout(() => reject(new Error('Session timeout')), 5000)
       );
       
-      const { data: { session }, error: sessionError } = await Promise.race([
+      const { data: { session }, error } = await Promise.race([
         sessionPromise,
         timeoutPromise
       ]);
       
-      if (sessionError && sessionError.message !== 'Auth session missing!') {
-        console.error('⚠️ 세션 오류:', sessionError);
+      if (error) {
+        console.error('⚠️ Session error:', error);
+        throw error;
       }
       
-      // 3. 세션이 있으면 사용자 설정
       if (session?.user) {
-        console.log('✅ Session found:', session.user.email);
+        console.log('✅ Initial session found:', session.user.email);
         setUser(session.user);
         
+        // 프로필 로딩은 try-catch로 보호
         try {
           await fetchProfile(session.user.id);
         } catch (profileError) {
-          console.error('❌ Profile fetch failed:', profileError);
-          // 프로필 로딩 실패해도 기본 프로필로 계속 진행
+          console.error('❌ Initial profile fetch failed:', profileError);
           setProfile({
             id: session.user.id,
             email: session.user.email,
@@ -121,26 +118,21 @@ export const AuthProvider = ({ children }) => {
             department: 'KPC AI Lab'
           });
         }
+        
+        console.log('✅ Initial auth complete with user');
+        setLoading(false);
         return;
       }
       
-      console.log('ℹ️ No session found - showing login');
+      console.log('ℹ️ No initial session - showing login');
       setUser(null);
       setProfile(null);
+      setLoading(false);
       
     } catch (error) {
-      console.error('⚠️ Error in checkUser:', error.message);
-      
-      // 4. 모든 오류 상황에서 로그인 화면으로
+      console.error('❌ Initial auth check failed:', error.message);
       setUser(null);
       setProfile(null);
-      
-      // 사용자에게 알림 (선택적)
-      if (error.message.includes('timeout')) {
-        console.warn('⏰ Connection timeout - please check your internet');
-      }
-    } finally {
-      console.log('🏁 Auth check complete - loading finished');
       setLoading(false);
     }
   };
