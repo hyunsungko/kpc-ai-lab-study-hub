@@ -1,21 +1,21 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 const EmailConfirmed = () => {
-  const navigate = useNavigate();
-
   useEffect(() => {
     // 5초 후 자동으로 로그인 페이지로 이동
     const timer = setTimeout(() => {
-      // AuthWrapper로 돌아가기 (로그인 페이지)
-      window.location.href = '/';
+      // 현재 도메인으로 이동 (localhost:3000 문제 해결)
+      const currentOrigin = window.location.origin;
+      window.location.href = currentOrigin;
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, []);
 
   const handleLoginNow = () => {
-    window.location.href = '/';
+    // 현재 도메인으로 이동
+    const currentOrigin = window.location.origin;
+    window.location.href = currentOrigin;
   };
 
   return (
@@ -76,7 +76,10 @@ const EmailConfirmed = () => {
             </button>
             
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => {
+                const currentOrigin = window.location.origin;
+                window.location.href = currentOrigin;
+              }}
               className="w-full py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
               홈으로 이동

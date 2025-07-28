@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthWrapper from './components/AuthWrapper';
 import StudyPage from './pages/StudyPage';
@@ -15,7 +16,14 @@ import { getStudySessions } from './lib/studyApi';
 // 메인 대시보드 컴포넌트
 const Dashboard = () => {
   const { user, profile, signOut, loading, updateProfile } = useAuth();
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [currentPage, setCurrentPage] = useState(() => {
+    const path = location.pathname;
+    if (path === '/') return 'dashboard';
+    if (path.startsWith('/studies/')) return 'study-detail';
+    return path.slice(1) || 'dashboard';
+  });
   const [selectedSession, setSelectedSession] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [editProfile, setEditProfile] = useState({
@@ -39,11 +47,19 @@ const Dashboard = () => {
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
-      await updateProfile(editProfile);
+      const { data, error } = await updateProfile(editProfile);
+      if (error) {
+        console.error('프로필 업데이트 실패:', error);
+        alert(`프로필 업데이트에 실패했습니다: ${error.message || '알 수 없는 오류'}`);
+        return;
+      }
+      
+      console.log('프로필 업데이트 성공:', data);
+      alert('프로필이 성공적으로 업데이트되었습니다!');
       setIsProfileModalOpen(false);
     } catch (error) {
-      console.error('프로필 업데이트 실패:', error);
-      alert('프로필 업데이트에 실패했습니다.');
+      console.error('프로필 업데이트 예외:', error);
+      alert('프로필 업데이트 중 오류가 발생했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -73,17 +89,40 @@ const Dashboard = () => {
     }
   }, [user, currentPage]);
 
+  // 페이지 변경 시 URL 업데이트
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    navigate(`/${page === 'dashboard' ? '' : page}`);
+  };
+
   // 스터디 상세 페이지로 이동
   const handleNavigateToStudyDetail = (session) => {
     setSelectedSession(session);
     setCurrentPage('study-detail');
+    navigate(`/studies/${session.id}`);
   };
 
   // 스터디 상세 페이지에서 뒤로가기
   const handleBackFromStudyDetail = () => {
     setSelectedSession(null);
     setCurrentPage('studies');
+    navigate('/studies');
   };
+
+  // URL 변경 감지
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/') {
+      setCurrentPage('dashboard');
+    } else if (path.startsWith('/studies/')) {
+      setCurrentPage('study-detail');
+    } else {
+      const page = path.slice(1);
+      if (['studies', 'polls', 'board', 'trends', 'resources', 'financial'].includes(page)) {
+        setCurrentPage(page);
+      }
+    }
+  }, [location.pathname]);
 
   if (loading) {
     return (
@@ -106,7 +145,7 @@ const Dashboard = () => {
             <div className="flex items-center">
               <h1 
                 className="text-2xl font-bold cursor-pointer hover:text-blue-200 transition-colors"
-                onClick={() => setCurrentPage('dashboard')}
+                onClick={() => handlePageChange('dashboard')}
               >
                 KPC AI Lab
               </h1>
@@ -124,7 +163,7 @@ const Dashboard = () => {
               ].map((item) => (
                 <button 
                   key={item.id}
-                  onClick={() => setCurrentPage(item.id)}
+                  onClick={() => handlePageChange(item.id)}
                   className={`relative px-4 py-2 rounded-lg transition-all duration-200 ${
                     currentPage === item.id 
                       ? 'text-white bg-blue-500/20 font-semibold' 
@@ -191,7 +230,7 @@ const Dashboard = () => {
           {/* Main Features */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             <div 
-              onClick={() => setCurrentPage('studies')}
+              onClick={() => handlePageChange('studies')}
               className="card card-hover group text-center cursor-pointer"
             >
               <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
@@ -204,7 +243,7 @@ const Dashboard = () => {
             </div>
 
             <div 
-              onClick={() => setCurrentPage('board')}
+              onClick={() => handlePageChange('board')}
               className="group text-center p-6 bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-purple-200"
             >
               <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
@@ -217,7 +256,7 @@ const Dashboard = () => {
             </div>
 
             <div 
-              onClick={() => setCurrentPage('polls')}
+              onClick={() => handlePageChange('polls')}
               className="group text-center p-6 bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-green-200"
             >
               <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
@@ -230,7 +269,7 @@ const Dashboard = () => {
             </div>
 
             <div 
-              onClick={() => setCurrentPage('trends')}
+              onClick={() => handlePageChange('trends')}
               className="group text-center p-6 bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-indigo-200"
             >
               <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
@@ -289,7 +328,7 @@ const Dashboard = () => {
                     )}
                   </div>
                   <button
-                    onClick={() => setCurrentPage('studies')}
+                    onClick={() => handlePageChange('studies')}
                     className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                   >
                     상세보기
@@ -310,7 +349,7 @@ const Dashboard = () => {
               </h3>
               <div className="space-y-3">
                 <button 
-                  onClick={() => setCurrentPage('resources')}
+                  onClick={() => handlePageChange('resources')}
                   className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between focus-ring"
                 >
                   <div className="flex items-center">
@@ -324,7 +363,7 @@ const Dashboard = () => {
                   </svg>
                 </button>
                 <button 
-                  onClick={() => setCurrentPage('financial')}
+                  onClick={() => handlePageChange('financial')}
                   className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between"
                 >
                   <div className="flex items-center">
@@ -489,13 +528,14 @@ const Dashboard = () => {
   );
 };
 
-// 앱 컴포넌트
+// 앱 컨테이너 (라우터 내부)
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
   
   // URL에서 이메일 확인 완료 여부 체크
-  const urlParams = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const urlParams = new URLSearchParams(location.search);
+  const hashParams = new URLSearchParams(location.hash.substring(1));
   const isEmailConfirmed = urlParams.get('type') === 'signup' || 
                            hashParams.get('type') === 'signup' ||
                            urlParams.get('confirmation') === 'success';
@@ -516,13 +556,26 @@ const AppContent = () => {
     return <EmailConfirmed />;
   }
 
-  return isAuthenticated ? <Dashboard /> : <AuthWrapper />;
+  return isAuthenticated ? (
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/studies" element={<Dashboard />} />
+      <Route path="/studies/:sessionId" element={<Dashboard />} />
+      <Route path="/polls" element={<Dashboard />} />
+      <Route path="/board" element={<Dashboard />} />
+      <Route path="/trends" element={<Dashboard />} />
+      <Route path="/resources" element={<Dashboard />} />
+      <Route path="/financial" element={<Dashboard />} />
+    </Routes>
+  ) : <AuthWrapper />;
 };
 
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <Router>
+        <AppContent />
+      </Router>
     </AuthProvider>
   );
 }

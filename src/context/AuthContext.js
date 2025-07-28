@@ -98,36 +98,51 @@ export const AuthProvider = ({ children }) => {
         const defaultProfile = {
           id: userId,
           email: currentUser?.email || '',
-          name: currentUser?.email?.split('@')[0] || '사용자'
+          name: currentUser?.email?.split('@')[0] || '사용자',
+          department: 'KPC AI Lab'
         };
         
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert(defaultProfile)
-          .select()
-          .single();
-          
-        if (createError) {
-          console.error('프로필 생성 실패:', createError);
-          setProfile(defaultProfile); // 임시로 설정
-        } else {
-          console.log('✅ 새 프로필이 생성되었습니다:', newProfile);
-          setProfile(newProfile);
+        try {
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert(defaultProfile)
+            .select()
+            .single();
+            
+          if (createError) {
+            console.error('프로필 생성 실패:', createError);
+            // RLS 정책 문제일 수 있으므로 임시 프로필 설정
+            setProfile(defaultProfile);
+          } else {
+            console.log('✅ 새 프로필이 생성되었습니다:', newProfile);
+            setProfile(newProfile);
+          }
+        } catch (createErr) {
+          console.error('프로필 생성 중 예외:', createErr);
+          setProfile(defaultProfile);
         }
       } else if (error) {
-        throw error;
+        console.error('프로필 조회 오류:', error);
+        // 오류가 있어도 임시 프로필로 계속 진행
+        setProfile({
+          id: userId,
+          email: currentUser?.email || '',
+          name: currentUser?.email?.split('@')[0] || '사용자',
+          department: 'KPC AI Lab'
+        });
       } else {
         console.log('✅ 기존 프로필을 불러왔습니다:', data);
         setProfile(data);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      // 오류 시 임시 프로필 설정
+      console.error('프로필 fetch 예외:', error);
+      // 모든 오류 상황에서도 기본 프로필로 진행
+      const { user: fallbackUser } = await getCurrentUser().catch(() => ({ user: null }));
       setProfile({
         id: userId,
-        name: '사용자',
-        department: 'KPC AI Lab',
-        position: '팀원'
+        email: fallbackUser?.email || '',
+        name: fallbackUser?.email?.split('@')[0] || '사용자',
+        department: 'KPC AI Lab'
       });
     }
   };
@@ -233,8 +248,38 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (updates) => {
     try {
-      if (!user) throw new Error('No user logged in');
+      if (!user) throw new Error('사용자가 로그인되어 있지 않습니다.');
       
+      console.log('프로필 업데이트 시도:', updates);
+      console.log('현재 사용자 ID:', user.id);
+      
+      // 프로필이 존재하지 않으면 먼저 생성
+      if (!profile) {
+        console.log('프로필이 없어서 새로 생성합니다.');
+        const newProfile = {
+          id: user.id,
+          email: user.email,
+          name: updates.name || user.email?.split('@')[0] || '사용자',
+          department: updates.department || 'KPC AI Lab'
+        };
+        
+        const { data: createData, error: createError } = await supabase
+          .from('profiles')
+          .insert(newProfile)
+          .select()
+          .single();
+          
+        if (createError) {
+          console.error('프로필 생성 실패:', createError);
+          throw createError;
+        }
+        
+        console.log('새 프로필 생성 성공:', createData);
+        setProfile(createData);
+        return { data: createData, error: null };
+      }
+      
+      // 기존 프로필 업데이트
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
@@ -242,10 +287,16 @@ export const AuthProvider = ({ children }) => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('프로필 업데이트 실패:', error);
+        throw error;
+      }
+      
+      console.log('프로필 업데이트 성공:', data);
       setProfile(data);
       return { data, error: null };
     } catch (error) {
+      console.error('프로필 업데이트 에러:', error);
       return { data: null, error };
     }
   };
