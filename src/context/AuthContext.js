@@ -189,17 +189,24 @@ export const AuthProvider = ({ children }) => {
         setUser(session.user);
         setStatus(AUTH_STATUS.AUTHENTICATED);
         
-        // 캐시된 프로필이 없으면 기본값 설정
-        if (!cachedProfile || cachedProfile.id !== session.user.id) {
+        // 캐시된 프로필이 있으면 사용, 없으면 기본값으로 즉시 설정
+        if (cachedProfile && cachedProfile.id === session.user.id) {
+          setProfile(cachedProfile);
+        } else {
           setProfile(createDefaultProfile(session.user));
         }
       });
 
-      // 백그라운드에서 프로필 로드 (UI 블로킹 안함)
+      // 백그라운드에서 프로필 로드 (실패해도 기본 프로필로 진행)
       if (!cachedProfile || cachedProfile.id !== session.user.id) {
-        loadProfile(session.user.id).then(userProfile => {
-          safeUpdate(() => setProfile(userProfile));
-        });
+        loadProfile(session.user.id)
+          .then(userProfile => {
+            safeUpdate(() => setProfile(userProfile));
+          })
+          .catch(err => {
+            console.warn('Profile load failed, keeping default:', err);
+            // 기본 프로필 유지, 인증 상태는 그대로
+          });
       }
 
     } catch (err) {
@@ -245,34 +252,34 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        // 로그인/토큰 갱신 시 세션 업데이트 (다른 디바이스 로그인은 현재 세션에 영향 없음)
-        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          console.log('🔑 Session updated:', event);
+        // 로그인 이벤트 - 즉시 인증 상태로 전환
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('🔑 User signed in:', session.user.email);
           
-          // 현재 브라우저에서 로그인한 경우만 처리
-          const currentUser = getFromStorage(SESSION_KEY);
-          if (!currentUser || currentUser.id === session.user.id) {
-            saveToStorage(SESSION_KEY, session.user);
-            
-            safeUpdate(() => {
-              setUser(session.user);
-              setStatus(AUTH_STATUS.AUTHENTICATED);
-            });
+          saveToStorage(SESSION_KEY, session.user);
+          
+          safeUpdate(() => {
+            setUser(session.user);
+            setStatus(AUTH_STATUS.AUTHENTICATED);
+            // 기본 프로필로 즉시 설정 (로딩 상태 해제)
+            setProfile(createDefaultProfile(session.user));
+          });
 
-            // 프로필이 없거나 다른 사용자면 로드
-            if (!profile || profile.id !== session.user.id) {
-              loadProfile(session.user.id).then(userProfile => {
-                safeUpdate(() => setProfile(userProfile));
-              });
-            }
-          }
+          // 백그라운드에서 실제 프로필 로드
+          loadProfile(session.user.id).then(userProfile => {
+            safeUpdate(() => setProfile(userProfile));
+          }).catch(err => {
+            console.warn('Profile load failed, using default:', err);
+          });
+          return;
         }
 
-        // 다른 디바이스에서의 세션 변화는 무시
+        // 토큰 갱신만 처리
         if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('🔄 Token refreshed for:', session.user.email);
+          
           const currentUser = getFromStorage(SESSION_KEY);
           if (currentUser && currentUser.id === session.user.id) {
-            // 같은 사용자의 토큰 갱신만 반영
             saveToStorage(SESSION_KEY, session.user);
             safeUpdate(() => {
               setUser(session.user);
