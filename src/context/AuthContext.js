@@ -65,10 +65,19 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🔍 Checking user session...');
       
-      // 세션 확인 시 타임아웃 설정
+      // 1. 먼저 Supabase 연결 테스트
+      try {
+        await supabase.from('profiles').select('count').limit(1).single();
+        console.log('✅ Supabase connection OK');
+      } catch (connError) {
+        console.error('❌ Supabase connection failed:', connError);
+        // 연결 실패해도 계속 진행 (로그인 화면으로)
+      }
+      
+      // 2. 세션 확인 (타임아웃 3초)
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session check timeout')), 10000)
+        setTimeout(() => reject(new Error('Session check timeout')), 3000)
       );
       
       const { data: { session }, error: sessionError } = await Promise.race([
@@ -77,10 +86,10 @@ export const AuthProvider = ({ children }) => {
       ]);
       
       if (sessionError && sessionError.message !== 'Auth session missing!') {
-        console.error('세션 오류:', sessionError);
+        console.error('⚠️ 세션 오류:', sessionError);
       }
       
-      // 세션이 있으면 사용자 설정
+      // 3. 세션이 있으면 사용자 설정
       if (session?.user) {
         console.log('✅ Session found:', session.user.email);
         setUser(session.user);
@@ -88,19 +97,23 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       
-      console.log('❌ No session found');
-      // 세션이 없으면 로그아웃 상태로 설정
+      console.log('ℹ️ No session found - showing login');
       setUser(null);
       setProfile(null);
       
     } catch (error) {
-      console.error('⚠️ Error checking user:', error);
-      // 타임아웃이나 네트워크 오류 시에도 로딩 해제
+      console.error('⚠️ Error in checkUser:', error.message);
+      
+      // 4. 모든 오류 상황에서 로그인 화면으로
       setUser(null);
       setProfile(null);
+      
+      // 사용자에게 알림 (선택적)
+      if (error.message.includes('timeout')) {
+        console.warn('⏰ Connection timeout - please check your internet');
+      }
     } finally {
-      // 초기 체크가 완료되면 로딩 해제
-      console.log('🏁 Initial user check complete');
+      console.log('🏁 Auth check complete - loading finished');
       setLoading(false);
     }
   };
@@ -109,7 +122,7 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('👤 Fetching profile for:', userId);
       
-      // 프로필 조회 시 타임아웃 설정
+      // 프로필 조회 시 타임아웃 설정 (3초로 단축)
       const profilePromise = supabase
         .from('profiles')
         .select('*')
@@ -117,7 +130,7 @@ export const AuthProvider = ({ children }) => {
         .single();
         
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
       );
       
       const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
