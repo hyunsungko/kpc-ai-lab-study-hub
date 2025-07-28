@@ -218,7 +218,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [getFromStorage, saveToStorage, safeUpdate, createDefaultProfile, loadProfile]);
 
-  // Auth 상태 변화 리스너 (최소한만)
+  // Auth 상태 변화 리스너 (다중 세션 지원)
   const setupAuthListener = useCallback(() => {
     if (authListenerRef.current) return;
 
@@ -229,9 +229,11 @@ export const AuthProvider = ({ children }) => {
 
         console.log('🔄 Auth event:', event, session?.user?.email || 'no-session');
 
-        // 명시적 로그아웃만 처리
+        // 로컬 로그아웃만 처리 (다른 디바이스에서의 로그아웃은 무시)
         if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out');
+          console.log('👋 Local sign out detected');
+          
+          // 현재 브라우저/탭에서만 로그아웃 처리
           saveToStorage(SESSION_KEY, null);
           saveToStorage(PROFILE_KEY, null);
           
@@ -243,20 +245,37 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        // 로그인/토큰 갱신 시 세션 업데이트
+        // 로그인/토큰 갱신 시 세션 업데이트 (다른 디바이스 로그인은 현재 세션에 영향 없음)
         if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
           console.log('🔑 Session updated:', event);
-          saveToStorage(SESSION_KEY, session.user);
           
-          safeUpdate(() => {
-            setUser(session.user);
-            setStatus(AUTH_STATUS.AUTHENTICATED);
-          });
+          // 현재 브라우저에서 로그인한 경우만 처리
+          const currentUser = getFromStorage(SESSION_KEY);
+          if (!currentUser || currentUser.id === session.user.id) {
+            saveToStorage(SESSION_KEY, session.user);
+            
+            safeUpdate(() => {
+              setUser(session.user);
+              setStatus(AUTH_STATUS.AUTHENTICATED);
+            });
 
-          // 프로필이 없거나 다른 사용자면 로드
-          if (!profile || profile.id !== session.user.id) {
-            loadProfile(session.user.id).then(userProfile => {
-              safeUpdate(() => setProfile(userProfile));
+            // 프로필이 없거나 다른 사용자면 로드
+            if (!profile || profile.id !== session.user.id) {
+              loadProfile(session.user.id).then(userProfile => {
+                safeUpdate(() => setProfile(userProfile));
+              });
+            }
+          }
+        }
+
+        // 다른 디바이스에서의 세션 변화는 무시
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          const currentUser = getFromStorage(SESSION_KEY);
+          if (currentUser && currentUser.id === session.user.id) {
+            // 같은 사용자의 토큰 갱신만 반영
+            saveToStorage(SESSION_KEY, session.user);
+            safeUpdate(() => {
+              setUser(session.user);
             });
           }
         }
@@ -265,7 +284,7 @@ export const AuthProvider = ({ children }) => {
 
     authListenerRef.current = subscription;
     return subscription;
-  }, [saveToStorage, safeUpdate, profile, loadProfile]);
+  }, [saveToStorage, safeUpdate, profile, loadProfile, getFromStorage]);
 
   // 컴포넌트 마운트
   useEffect(() => {

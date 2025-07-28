@@ -4,14 +4,29 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://dalznnfyyzbuoiwriajd.supabase.co';
 const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhbHpubmZ5eXpidW9pd3JpYWpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NzkxMTcsImV4cCI6MjA2ODI1NTExN30.NZEvfz21B4sjEla1zYY-UuhrhxVQnvT5khQK8fmCe-c';
 
-// Supabase 클라이언트 생성 (성능 최적화)
+// 디바이스별 고유 세션 키 생성
+const generateDeviceSessionKey = () => {
+  const userAgent = typeof window !== 'undefined' ? window.navigator.userAgent : 'server';
+  const screenInfo = typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'unknown';
+  const timestamp = typeof window !== 'undefined' ? window.sessionStorage.getItem('kpc-device-id') : null;
+  
+  if (!timestamp && typeof window !== 'undefined') {
+    const deviceId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    window.sessionStorage.setItem('kpc-device-id', deviceId);
+    return `kpc-session-${deviceId}`;
+  }
+  
+  return `kpc-session-${timestamp || 'fallback'}`;
+};
+
+// Supabase 클라이언트 생성 (다중 디바이스 세션 지원)
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
     storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
-    storageKey: 'kpc-supabase-session',
+    storageKey: generateDeviceSessionKey(),
     flowType: 'pkce'
   },
   db: {
@@ -20,6 +35,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
   global: {
     headers: {
       'x-my-custom-header': 'kpc-ai-lab-study-hub',
+      'x-device-session': generateDeviceSessionKey(),
       'Cache-Control': 'no-cache'
     }
   },
