@@ -40,13 +40,28 @@ export const AuthProvider = ({ children }) => {
         try {
           if (session?.user) {
             setUser(session.user);
-            await fetchProfile(session.user.id);
+            
+            try {
+              await fetchProfile(session.user.id);
+            } catch (profileError) {
+              console.error('❌ Profile fetch failed in auth change:', profileError);
+              // 프로필 로딩 실패해도 기본 프로필로 계속 진행
+              setProfile({
+                id: session.user.id,
+                email: session.user.email,
+                name: session.user.email?.split('@')[0] || '사용자',
+                department: 'KPC AI Lab'
+              });
+            }
           } else {
             setUser(null);
             setProfile(null);
           }
         } catch (error) {
-          console.error('Auth state change error:', error);
+          console.error('⚠️ Auth state change error:', error);
+          // 오류 시에도 상태 정리
+          setUser(null);
+          setProfile(null);
         } finally {
           if (mounted && initialCheckComplete) {
             setLoading(false);
@@ -93,7 +108,19 @@ export const AuthProvider = ({ children }) => {
       if (session?.user) {
         console.log('✅ Session found:', session.user.email);
         setUser(session.user);
-        await fetchProfile(session.user.id);
+        
+        try {
+          await fetchProfile(session.user.id);
+        } catch (profileError) {
+          console.error('❌ Profile fetch failed:', profileError);
+          // 프로필 로딩 실패해도 기본 프로필로 계속 진행
+          setProfile({
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.email?.split('@')[0] || '사용자',
+            department: 'KPC AI Lab'
+          });
+        }
         return;
       }
       
