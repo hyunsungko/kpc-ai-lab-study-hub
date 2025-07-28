@@ -65,7 +65,8 @@ export const AuthProvider = ({ children }) => {
       if (error && error.code === 'PGRST116') {
         // 프로필이 없으면 생성 시도
         console.log('📝 Creating new profile...');
-        const defaultProfile = createDefaultProfile({ id: userId, email: user?.email });
+        const { user: currentUser } = await getCurrentUser();
+        const defaultProfile = createDefaultProfile({ id: userId, email: currentUser?.email });
         
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
@@ -82,39 +83,60 @@ export const AuthProvider = ({ children }) => {
         }
       } else if (error) {
         console.error('❌ Profile query error:', error);
-        return createDefaultProfile({ id: userId, email: user?.email });
+        const { user: currentUser } = await getCurrentUser();
+        return createDefaultProfile({ id: userId, email: currentUser?.email });
       } else {
         console.log('✅ Profile loaded:', data);
         return data;
       }
     } catch (error) {
       console.error('❌ Profile loading exception:', error);
-      return createDefaultProfile({ id: userId, email: user?.email });
+      const { user: currentUser } = await getCurrentUser().catch(() => ({ user: null }));
+      return createDefaultProfile({ id: userId, email: currentUser?.email });
     }
   };
 
-  // 메인 초기화 함수 (단순화)
-  const initializeAuth = async () => {
-    if (initializingRef.current) {
+  // 메인 초기화 함수 (재시도 로직 추가)
+  const initializeAuth = async (retryCount = 0) => {
+    if (initializingRef.current && retryCount === 0) {
       console.log('⏸️ Already initializing, skipping...');
       return;
     }
     
     initializingRef.current = true;
-    console.log('🚀 Initializing auth...');
+    const maxRetries = 3;
+    console.log(`🚀 Initializing auth (attempt ${retryCount + 1}/${maxRetries + 1})...`);
     
     try {
-      // 1단계: 세션 확인 (즉시 실패 시 로그인 화면)
+      // 1단계: 세션 확인 (재시도 가능)
       console.log('1️⃣ Checking session...');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError) {
-        console.error('❌ Session error:', sessionError);
+      let session = null;
+      let sessionError = null;
+      
+      // 세션 체크 재시도 로직
+      for (let i = 0; i <= 2; i++) {
+        const { data: sessionData, error } = await supabase.auth.getSession();
+        
+        if (!error && sessionData?.session) {
+          session = sessionData.session;
+          break;
+        }
+        
+        sessionError = error;
+        if (i < 2) {
+          console.log(`⏳ Session check failed, retrying in ${(i + 1) * 1000}ms...`);
+          await new Promise(resolve => setTimeout(resolve, (i + 1) * 1000));
+        }
+      }
+      
+      if (sessionError && !session) {
+        console.error('❌ Session error after retries:', sessionError);
         throw sessionError;
       }
 
       if (!session?.user) {
-        console.log('ℹ️ No session found');
+        console.log('ℹ️ No session found after retries');
         safeSetState(() => {
           setAuthState(AUTH_STATES.UNAUTHENTICATED);
           setUser(null);
@@ -143,7 +165,20 @@ export const AuthProvider = ({ children }) => {
       console.log('✅ Auth initialization complete');
       
     } catch (error) {
-      console.error('❌ Auth initialization failed:', error);
+      console.error(`❌ Auth initialization failed (attempt ${retryCount + 1}):`, error);
+      
+      // 재시도 로직
+      if (retryCount < maxRetries && mountedRef.current) {
+        console.log(`🔄 Retrying in ${(retryCount + 1) * 2000}ms...`);
+        setTimeout(() => {
+          if (mountedRef.current) {
+            initializeAuth(retryCount + 1);
+          }
+        }, (retryCount + 1) * 2000);
+        return;
+      }
+      
+      // 모든 재시도 실패
       safeSetState(() => {
         setAuthState(AUTH_STATES.UNAUTHENTICATED);
         setUser(null);
@@ -151,7 +186,9 @@ export const AuthProvider = ({ children }) => {
         setError(error.message);
       });
     } finally {
-      initializingRef.current = false;
+      if (retryCount === 0) {
+        initializingRef.current = false;
+      }
     }
   };
 
@@ -162,15 +199,16 @@ export const AuthProvider = ({ children }) => {
     // 즉시 초기화 시작
     initializeAuth();
     
-    // Auth 상태 변화 리스너
+    // Auth 상태 변화 리스너 (안정화)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth change:', event, session?.user?.email);
+        console.log('🔄 Auth change:', event, '|', session?.user?.email || 'no-session');
         
         if (!mountedRef.current) return;
         
-        // 로그아웃 이벤트
-        if (event === 'SIGNED_OUT' || !session) {
+        // 명시적인 로그아웃만 처리 (토큰 갱신 중 세션 없음은 무시)
+        if (event === 'SIGNED_OUT') {
+          console.log('💪 Explicit sign out detected');
           safeSetState(() => {
             setAuthState(AUTH_STATES.UNAUTHENTICATED);
             setUser(null);
@@ -181,22 +219,37 @@ export const AuthProvider = ({ children }) => {
         
         // 로그인 이벤트 (재초기화)
         if (event === 'SIGNED_IN' && session?.user) {
+          console.log('🔑 Sign in detected, reinitializing...');
           await initializeAuth();
+          return;
         }
+        
+        // 토큰 갱신 이벤트 (상태 유지)
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('🔄 Token refreshed, updating user data');
+          safeSetState(() => {
+            setUser(session.user);
+            // 프로필은 그대로 유지
+          });
+          return;
+        }
+        
+        // 기타 이벤트는 무시 (안정성 위해)
+        console.log('🤷 Ignoring auth event:', event);
       }
     );
 
-    // 15초 강제 타임아웃 (최종 안전장치)
+    // 30초 강제 타임아웃 (최종 안전장치 - 재시도 고려하여 증가)
     const forceComplete = setTimeout(() => {
       if (mountedRef.current && authState === AUTH_STATES.LOADING) {
-        console.log('⏰ Force timeout - showing login');
+        console.log('⏰ Force timeout after 30s - showing login');
         safeSetState(() => {
           setAuthState(AUTH_STATES.UNAUTHENTICATED);
           setUser(null);
           setProfile(null);
         });
       }
-    }, 15000);
+    }, 30000);
 
     return () => {
       console.log('👋 AuthProvider unmounting');
