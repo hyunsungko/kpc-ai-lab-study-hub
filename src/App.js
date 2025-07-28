@@ -585,9 +585,9 @@ const Dashboard = () => {
   );
 };
 
-// 앱 컨테이너 (라우터 내부)
+// 앱 컨테이너 (라우터 내부)  
 const AppContent = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, status } = useAuth();
   const location = useLocation();
   
   // URL에서 이메일 확인 완료 여부 체크
@@ -601,17 +601,13 @@ const AppContent = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
           <div className="space-y-2">
-            <p className="text-xl font-semibold text-gray-800">KPC AI Lab</p>
-            <p className="text-gray-600">스터디 플랫폼 인증 중...</p>
-            <div className="flex justify-center mt-4">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-              </div>
-            </div>
+            <p className="text-lg font-semibold text-gray-800">KPC AI Lab</p>
+            <p className="text-gray-600">인증 중...</p>
+            {status && (
+              <p className="text-xs text-gray-400">상태: {status}</p>
+            )}
           </div>
         </div>
       </div>
