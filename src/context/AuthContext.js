@@ -15,37 +15,66 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [initialCheckComplete, setInitialCheckComplete] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    
     // 초기 사용자 상태 확인
-    checkUser();
+    const initAuth = async () => {
+      await checkUser();
+      if (mounted) {
+        setInitialCheckComplete(true);
+      }
+    };
+    
+    initAuth();
 
     // 인증 상태 변화 감지
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          await fetchProfile(session.user.id);
-        } else {
-          setUser(null);
-          setProfile(null);
-        }
-        // 테스트 환경에서 act() 경고를 방지하기 위해 setTimeout 사용
-        if (process.env.NODE_ENV === 'test') {
-          setTimeout(() => setLoading(false), 0);
-        } else {
-          setLoading(false);
+        console.log('Auth state change:', event, session?.user?.email);
+        
+        if (!mounted) return;
+        
+        try {
+          if (session?.user) {
+            setUser(session.user);
+            await fetchProfile(session.user.id);
+          } else {
+            setUser(null);
+            setProfile(null);
+          }
+        } catch (error) {
+          console.error('Auth state change error:', error);
+        } finally {
+          if (mounted && initialCheckComplete) {
+            setLoading(false);
+          }
         }
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [initialCheckComplete]);
 
   const checkUser = async () => {
     try {
-      // 먼저 세션 확인
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔍 Checking user session...');
+      
+      // 세션 확인 시 타임아웃 설정
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Session check timeout')), 10000)
+      );
+      
+      const { data: { session }, error: sessionError } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ]);
       
       if (sessionError && sessionError.message !== 'Auth session missing!') {
         console.error('세션 오류:', sessionError);
@@ -53,48 +82,50 @@ export const AuthProvider = ({ children }) => {
       
       // 세션이 있으면 사용자 설정
       if (session?.user) {
+        console.log('✅ Session found:', session.user.email);
         setUser(session.user);
         await fetchProfile(session.user.id);
         return;
       }
       
-      // 세션이 없으면 사용자 정보로 재확인 (fallback)
-      const { user, error } = await getCurrentUser();
-      if (error && error.message !== 'Auth session missing!') {
-        console.error('사용자 확인 오류:', error);
-      }
+      console.log('❌ No session found');
+      // 세션이 없으면 로그아웃 상태로 설정
+      setUser(null);
+      setProfile(null);
       
-      if (user) {
-        setUser(user);
-        await fetchProfile(user.id);
-      }
     } catch (error) {
-      console.error('Error checking user:', error);
-      // 오류가 있어도 앱이 계속 작동하도록 함
+      console.error('⚠️ Error checking user:', error);
+      // 타임아웃이나 네트워크 오류 시에도 로딩 해제
+      setUser(null);
+      setProfile(null);
     } finally {
-      // 테스트 환경에서 act() 경고를 방지하기 위해 setTimeout 사용
-      if (process.env.NODE_ENV === 'test') {
-        setTimeout(() => setLoading(false), 0);
-      } else {
-        setLoading(false);
-      }
+      // 초기 체크가 완료되면 로딩 해제
+      console.log('🏁 Initial user check complete');
+      setLoading(false);
     }
   };
 
   const fetchProfile = async (userId) => {
     try {
-      // 현재 사용자 정보 가져오기
-      const { user: currentUser } = await getCurrentUser();
+      console.log('👤 Fetching profile for:', userId);
       
-      const { data, error } = await supabase
+      // 프로필 조회 시 타임아웃 설정
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+        
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+      );
+      
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
       
       if (error && error.code === 'PGRST116') {
         // 프로필이 없으면 기본 프로필 생성
-        console.log('프로필이 없어서 기본 프로필을 생성합니다.');
+        console.log('📝 Creating default profile...');
+        const { user: currentUser } = await getCurrentUser();
         const defaultProfile = {
           id: userId,
           email: currentUser?.email || '',
@@ -110,20 +141,20 @@ export const AuthProvider = ({ children }) => {
             .single();
             
           if (createError) {
-            console.error('프로필 생성 실패:', createError);
-            // RLS 정책 문제일 수 있으므로 임시 프로필 설정
+            console.error('❌ 프로필 생성 실패:', createError);
             setProfile(defaultProfile);
           } else {
-            console.log('✅ 새 프로필이 생성되었습니다:', newProfile);
+            console.log('✅ 새 프로필 생성 성공:', newProfile);
             setProfile(newProfile);
           }
         } catch (createErr) {
-          console.error('프로필 생성 중 예외:', createErr);
+          console.error('❌ 프로필 생성 중 예외:', createErr);
           setProfile(defaultProfile);
         }
       } else if (error) {
-        console.error('프로필 조회 오류:', error);
-        // 오류가 있어도 임시 프로필로 계속 진행
+        console.error('❌ 프로필 조회 오류:', error);
+        // 오류 시 기본 프로필 설정
+        const { user: currentUser } = await getCurrentUser().catch(() => ({ user: null }));
         setProfile({
           id: userId,
           email: currentUser?.email || '',
@@ -131,12 +162,12 @@ export const AuthProvider = ({ children }) => {
           department: 'KPC AI Lab'
         });
       } else {
-        console.log('✅ 기존 프로필을 불러왔습니다:', data);
+        console.log('✅ 프로필 조회 성공:', data);
         setProfile(data);
       }
     } catch (error) {
-      console.error('프로필 fetch 예외:', error);
-      // 모든 오류 상황에서도 기본 프로필로 진행
+      console.error('⚠️ 프로필 fetch 예외:', error);
+      // 타임아웃이나 네트워크 오류 시 기본 프로필 설정
       const { user: fallbackUser } = await getCurrentUser().catch(() => ({ user: null }));
       setProfile({
         id: userId,

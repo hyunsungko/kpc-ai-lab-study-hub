@@ -126,10 +126,67 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">로딩 중...</p>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header Skeleton */}
+        <div className="bg-blue-600 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-6">
+              <div className="flex items-center">
+                <div className="h-8 w-32 bg-blue-500 rounded animate-pulse"></div>
+                <div className="ml-3 w-12 h-6 bg-blue-500 rounded-full animate-pulse"></div>
+              </div>
+              <div className="hidden md:flex space-x-1">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="h-8 w-16 bg-blue-500 rounded-lg animate-pulse"></div>
+                ))}
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="h-12 w-20 bg-blue-500 rounded-lg animate-pulse"></div>
+                <div className="h-8 w-16 bg-blue-500 rounded-lg animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Content Skeleton */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Welcome Message Skeleton */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-lg p-8 mb-8">
+            <div className="text-center">
+              <div className="h-8 w-64 bg-blue-500/30 rounded mx-auto mb-4 animate-pulse"></div>
+              <div className="h-6 w-96 bg-blue-500/30 rounded mx-auto mb-6 animate-pulse"></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
+                    <div className="h-6 w-16 bg-white/20 rounded mb-2 animate-pulse"></div>
+                    <div className="h-4 w-24 bg-white/20 rounded animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Feature Cards Skeleton */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+                <div className="w-14 h-14 bg-gray-200 rounded-lg mx-auto mb-4"></div>
+                <div className="h-5 w-16 bg-gray-200 rounded mx-auto mb-2"></div>
+                <div className="h-4 w-20 bg-gray-200 rounded mx-auto"></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Loading Message */}
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">
+              KPC AI Lab 스터디 플랫폼 로딩 중...
+            </p>
+            <p className="text-gray-500 text-sm mt-2">
+              잠시만 기다려주세요
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -544,8 +601,18 @@ const AppContent = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">KPC AI Lab 로딩 중...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6"></div>
+          <div className="space-y-2">
+            <p className="text-xl font-semibold text-gray-800">KPC AI Lab</p>
+            <p className="text-gray-600">스터디 플랫폼 인증 중...</p>
+            <div className="flex justify-center mt-4">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
