@@ -4,7 +4,22 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://dalznnfyyzbuoiwriajd.supabase.co';
 const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhbHpubmZ5eXpidW9pd3JpYWpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NzkxMTcsImV4cCI6MjA2ODI1NTExN30.NZEvfz21B4sjEla1zYY-UuhrhxVQnvT5khQK8fmCe-c';
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Supabase 클라이언트 생성 (연결 최적화 옵션 추가)
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: {
+      'x-my-custom-header': 'kpc-ai-lab-study-hub'
+    }
+  }
+});
 
 // 연결 테스트 함수
 export const testConnection = async () => {

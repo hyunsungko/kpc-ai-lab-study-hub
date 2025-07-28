@@ -70,13 +70,23 @@ export const AuthProvider = ({ children }) => {
       await checkUser();
     };
     
-    // 짧은 딘레이 후 초기 체크 실행
-    const initTimer = setTimeout(initAuth, 100);
+    // 초기 체크 즉시 실행
+    initAuth();
+    
+    // 15초 후에도 로딩 중이면 강제로 로그인 화면 표시 (최종 안전장치)
+    const forceTimeout = setTimeout(() => {
+      if (mounted) {
+        console.log('⚠️ 15초 강제 타임아웃 - 로그인 화면 표시');
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+      }
+    }, 15000);
 
     return () => {
       mounted = false;
       authChecked = true;
-      clearTimeout(initTimer);
+      clearTimeout(forceTimeout);
       subscription.unsubscribe();
       console.log('📏 AuthProvider unmounting...');
     };
@@ -86,10 +96,10 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🔍 Initial session check...');
       
-      // 간단한 세션 확인 (타임아웃 5초)
+      // 세션 확인 (타임아웃 15초로 증가)
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session timeout')), 5000)
+        setTimeout(() => reject(new Error('Session timeout')), 15000)
       );
       
       const { data: { session }, error } = await Promise.race([
@@ -131,6 +141,29 @@ export const AuthProvider = ({ children }) => {
       
     } catch (error) {
       console.error('❌ Initial auth check failed:', error.message);
+      
+      // 타임아웃 에러의 경우 다시 한 번 시도
+      if (error.message.includes('timeout')) {
+        console.log('⏳ Timeout occurred, trying once more...');
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            console.log('✅ Retry successful:', session.user.email);
+            setUser(session.user);
+            setProfile({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.email?.split('@')[0] || '사용자',
+              department: 'KPC AI Lab'
+            });
+            setLoading(false);
+            return;
+          }
+        } catch (retryError) {
+          console.error('❌ Retry also failed:', retryError);
+        }
+      }
+      
       setUser(null);
       setProfile(null);
       setLoading(false);
@@ -141,7 +174,7 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('👤 Fetching profile for:', userId);
       
-      // 프로필 조회 시 타임아웃 설정 (3초로 단축)
+      // 프로필 조회 시 타임아웃 설정 (10초로 증가)
       const profilePromise = supabase
         .from('profiles')
         .select('*')
@@ -149,7 +182,7 @@ export const AuthProvider = ({ children }) => {
         .single();
         
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
       );
       
       const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
