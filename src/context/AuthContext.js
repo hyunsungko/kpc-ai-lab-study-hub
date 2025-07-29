@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     id: userData.id,
     email: userData.email,
     name: userData.email?.split('@')[0] || '사용자',
-    department: 'KPC AI Lab',
+    department: 'Mars-Q',
     position: '팀원',
     avatar_url: null,
     bio: null,
@@ -408,7 +408,7 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     
     // 레거시 호환
-    isKPCMember: !!profile
+    isMember: !!profile
   };
 
   return (

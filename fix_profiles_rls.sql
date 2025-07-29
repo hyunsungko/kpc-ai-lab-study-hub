@@ -1,4 +1,4 @@
--- 🔧 KPC AI Lab 프로필 테이블 RLS 정책 수정
+-- 🔧 Mars-Q 프로필 테이블 RLS 정책 수정
 -- Supabase Dashboard → SQL Editor에서 실행하세요!
 
 -- 1️⃣ 기존 정책들 모두 삭제

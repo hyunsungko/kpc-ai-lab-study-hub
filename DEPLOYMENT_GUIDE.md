@@ -1,4 +1,4 @@
-# 🚀 KPC AI Lab Study Hub 배포 및 운영 가이드
+# 🚀 Mars-Q Study Hub 배포 및 운영 가이드
 
 ## 📋 목차
 1. [배포 환경 설정](#배포-환경-설정)

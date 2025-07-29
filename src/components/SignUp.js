@@ -115,7 +115,7 @@ const SignUp = ({ onToggleMode }) => {
           {/* 헤더 */}
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900">
-              KPC AI Lab 가입
+              Mars-Q 가입
             </h2>
             <p className="mt-2 text-sm text-gray-600">
               Step 1: 기본 정보 입력
@@ -290,7 +290,7 @@ const SignUp = ({ onToggleMode }) => {
               가입 완료! 🎉
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              KPC AI Lab 가입이 완료되었습니다.
+              Mars-Q 가입이 완료되었습니다.
             </p>
             <p className="mt-2 text-sm text-gray-500">
               이메일을 확인하시고 인증을 완료해주세요.
@@ -319,7 +319,7 @@ const SignUp = ({ onToggleMode }) => {
         {/* 헤더 */}
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900">
-            KPC AI Lab 가입
+            Mars-Q 가입
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Step 2: 프로필 정보 입력

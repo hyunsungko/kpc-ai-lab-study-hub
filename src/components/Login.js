@@ -57,7 +57,7 @@ const Login = ({ onToggleMode }) => {
               로그인 성공! ✨
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              KPC AI Lab에 접속 중입니다...
+              Mars-Q에 접속 중입니다...
             </p>
             <div className="mt-6">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -74,7 +74,7 @@ const Login = ({ onToggleMode }) => {
         {/* 헤더 */}
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900">
-            KPC AI Lab
+            Mars-Q
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             팀원 전용 학습공간에 로그인하세요
@@ -173,7 +173,7 @@ const Login = ({ onToggleMode }) => {
             </div>
             <div className="ml-3">
               <p className="text-sm text-blue-700">
-                <strong>KPC 자격컨설팅센터 팀원 전용</strong><br />
+                <strong>Mars-Q 팀원 전용</strong><br />
                 AI 활용 학습과 자격개발 혁신을 위한 비공개 공간입니다.
               </p>
             </div>

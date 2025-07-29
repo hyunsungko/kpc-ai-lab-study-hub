@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
                 id: session.user.id,
                 email: session.user.email,
                 name: session.user.email?.split('@')[0] || '사용자',
-                department: 'KPC AI Lab'
+                department: 'Mars-Q'
               });
             }
           } else {
@@ -125,7 +125,7 @@ export const AuthProvider = ({ children }) => {
             id: session.user.id,
             email: session.user.email,
             name: session.user.email?.split('@')[0] || '사용자',
-            department: 'KPC AI Lab'
+            department: 'Mars-Q'
           });
         }
         
@@ -154,7 +154,7 @@ export const AuthProvider = ({ children }) => {
               id: session.user.id,
               email: session.user.email,
               name: session.user.email?.split('@')[0] || '사용자',
-              department: 'KPC AI Lab'
+              department: 'Mars-Q'
             });
             setLoading(false);
             return;
@@ -195,7 +195,7 @@ export const AuthProvider = ({ children }) => {
           id: userId,
           email: currentUser?.email || '',
           name: currentUser?.email?.split('@')[0] || '사용자',
-          department: 'KPC AI Lab'
+          department: 'Mars-Q'
         };
         
         try {
@@ -224,7 +224,7 @@ export const AuthProvider = ({ children }) => {
           id: userId,
           email: currentUser?.email || '',
           name: currentUser?.email?.split('@')[0] || '사용자',
-          department: 'KPC AI Lab'
+          department: 'Mars-Q'
         });
       } else {
         console.log('✅ 프로필 조회 성공:', data);
@@ -238,7 +238,7 @@ export const AuthProvider = ({ children }) => {
         id: userId,
         email: fallbackUser?.email || '',
         name: fallbackUser?.email?.split('@')[0] || '사용자',
-        department: 'KPC AI Lab'
+        department: 'Mars-Q'
       });
     }
   };
@@ -356,7 +356,7 @@ export const AuthProvider = ({ children }) => {
           id: user.id,
           email: user.email,
           name: updates.name || user.email?.split('@')[0] || '사용자',
-          department: updates.department || 'KPC AI Lab'
+          department: updates.department || 'Mars-Q'
         };
         
         const { data: createData, error: createError } = await supabase

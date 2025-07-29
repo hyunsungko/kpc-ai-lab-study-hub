@@ -1,4 +1,4 @@
-# KPC AI Lab Study Hub 📚
+# Mars-Q Study Hub 📚
 
 [![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=for-the-badge&logo=vercel)](https://kpc-ai-lab-study-hub-v2.vercel.app)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
@@ -7,7 +7,7 @@
 
 ## 🎯 프로젝트 개요
 
-KPC AI Lab Study Hub는 **React + Supabase + Tailwind CSS** 기반의 종합 스터디 관리 플랫폼입니다. 
+Mars-Q Study Hub는 **React + Supabase + Tailwind CSS** 기반의 종합 스터디 관리 플랫폼입니다. 
 스터디 그룹의 모든 활동을 통합 관리할 수 있는 웹 애플리케이션입니다.
 
 ### ✨ 주요 기능
@@ -377,7 +377,7 @@ saveStudyNotes(sessionId, content)
 
 ## 📞 지원 및 문의
 
-- **개발자**: KPC AI Lab Team
+- **개발자**: Mars-Q Team
 - **GitHub**: [https://github.com/hyunsungko/kpc-ai-lab-study-hub](https://github.com/hyunsungko/kpc-ai-lab-study-hub)
 - **배포 URL**: [https://kpc-ai-lab-study-hub-v2.vercel.app](https://kpc-ai-lab-study-hub-v2.vercel.app)
 

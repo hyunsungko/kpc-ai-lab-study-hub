@@ -46,7 +46,7 @@ const EmailConfirmed = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-sm text-green-800">
-                이제 KPC AI Lab 스터디 플랫폼에 로그인하실 수 있습니다!
+                이제 Mars-Q 스터디 플랫폼에 로그인하실 수 있습니다!
               </p>
             </div>
           </div>

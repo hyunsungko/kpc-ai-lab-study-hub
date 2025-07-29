@@ -181,7 +181,7 @@ const Dashboard = () => {
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600 font-medium">
-              KPC AI Lab 스터디 플랫폼 로딩 중...
+              Mars-Q 스터디 플랫폼 로딩 중...
             </p>
             <p className="text-gray-500 text-sm mt-2">
               잠시만 기다려주세요
@@ -204,7 +204,7 @@ const Dashboard = () => {
                 className="text-2xl font-bold cursor-pointer hover:text-blue-200 transition-colors"
                 onClick={() => handlePageChange('dashboard')}
               >
-                KPC AI Lab
+                Mars-Q
               </h1>
               <span className="ml-3 px-3 py-1 bg-blue-500 text-xs rounded-full">Beta</span>
             </div>
@@ -264,7 +264,7 @@ const Dashboard = () => {
                 안녕하세요, {profile?.name || '팀원'}님! 👋
               </h2>
               <p className="text-lg opacity-90 max-w-2xl mx-auto mb-6">
-                KPC AI Lab 스터디 플랫폼에 오신 것을 환영합니다.<br/>
+                Mars-Q 스터디 플랫폼에 오신 것을 환영합니다.<br/>
                 함께 AI 기술을 학습하고 성장해나가요!
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
@@ -603,7 +603,7 @@ const AppContent = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
           <div className="space-y-2">
-            <p className="text-lg font-semibold text-gray-800">KPC AI Lab</p>
+            <p className="text-lg font-semibold text-gray-800">Mars-Q</p>
             <p className="text-gray-600">인증 중...</p>
             {status && (
               <p className="text-xs text-gray-400">상태: {status}</p>

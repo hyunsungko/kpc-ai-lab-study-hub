@@ -1,11 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import App from './App';
 
-test('renders KPC AI Lab loading text', async () => {
+test('renders Mars-Q loading text', async () => {
   render(<App />);
   
   // 로딩 텍스트가 나타나는지 확인
-  const loadingElement = screen.getByText(/KPC AI Lab 로딩 중.../i);
+  const loadingElement = screen.getByText(/Mars-Q 로딩 중.../i);
   expect(loadingElement).toBeInTheDocument();
 });
 
